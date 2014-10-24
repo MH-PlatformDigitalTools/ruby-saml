@@ -14,10 +14,10 @@ module OneLogin
       # Encryption related
       PLAINTEXT_ASSERTION_PATH = "/samlp:Response/Assertion"
       ENCRYPTED_RESPONSE_PATH = "(/samlp:Response/EncryptedAssertion/)|(/samlp:Response/saml:EncryptedAssertion/)"
-      ENCRYPTED_RESPONSE_DATA_PATH = "./xenc:EncryptedData"
-      ENCRYPTION_METHOD_PATH = "./xenc:EncryptionMethod"
-      ENCRYPTED_AES_KEY_PATH = "(./KeyInfo/e:EncryptedKey/e:CipherData/e:CipherValue)|(./ds:KeyInfo/xenc:EncryptedKey/xenc:CipherData/xenc:CipherValue)"
-      ENCRYPTED_ASSERTION_PATH = "./xenc:CipherData/xenc:CipherValue"
+      ENCRYPTED_RESPONSE_DATA_PATH = "./EncryptedData"
+      ENCRYPTION_METHOD_PATH = "./EncryptionMethod"
+      ENCRYPTED_AES_KEY_PATH = "(./KeyInfo/EncryptedKey/CipherData/CipherValue)"
+      ENCRYPTED_ASSERTION_PATH = "./CipherData/CipherValue"
       RSA_PKCS1_OAEP_PADDING = 4
       ENCRYTPION_ALGORITHMS = {
           'http://www.w3.org/2001/04/xmlenc#aes128-cbc' => 'AES-128-CBC',
@@ -48,15 +48,16 @@ module OneLogin
 
       # The value of the user identifier as designated by the initialization request response
       def name_id
+
         @name_id ||= begin
-          node = xpath_first_from_signed_assertion('/a:Subject/a:NameID')
+          node = REXML::XPath.first(assertion_document, "samlp:Response/saml:Assertion/saml:Subject/saml:NameID/")
           node.nil? ? nil : node.text
         end
       end
 
       def sessionindex
         @sessionindex ||= begin
-          node = xpath_first_from_signed_assertion('/a:AuthnStatement')
+          node = REXML::XPath.first(assertion_document, "samlp:Response/saml:Assertion/saml:AuthnStatement/")
           node.nil? ? nil : node.attributes['SessionIndex']
         end
       end
@@ -65,10 +66,12 @@ module OneLogin
       # Multiple values will be returned in the AttributeValue#values array
       # in reverse order, when compared to XML
       def attributes
+
         @attr_statements ||= begin
+
           result = {}
 
-          stmt_element = xpath_first_from_signed_assertion('/a:AttributeStatement')
+          stmt_element = REXML::XPath.first(assertion_document, "samlp:Response/saml:Assertion/saml:AttributeStatement/")
           return {} if stmt_element.nil?
 
           stmt_element.elements.each do |attr_element|
@@ -100,7 +103,7 @@ module OneLogin
       # When this user session should expire at latest
       def session_expires_at
         @expires_at ||= begin
-          node = xpath_first_from_signed_assertion('/a:AuthnStatement')
+          node = REXML::XPath.first(assertion_document, "samlp:Response/saml:Assertion/saml:AuthnStatement/")
           parse_time(node, "SessionNotOnOrAfter")
         end
       end
@@ -108,7 +111,7 @@ module OneLogin
       # Checks the status of the response for a "Success" code
       def success?
         @status_code ||= begin
-          node = REXML::XPath.first(document, "/p:Response/p:Status/p:StatusCode", { "p" => PROTOCOL, "a" => ASSERTION })
+          node = REXML::XPath.first(document, "/samlp:Response/samlp:Status/samlp:StatusCode")
           node.attributes["Value"] == "urn:oasis:names:tc:SAML:2.0:status:Success"
         end
       end
@@ -127,9 +130,10 @@ module OneLogin
       end
 
       def issuer
+
         @issuer ||= begin
-          node = REXML::XPath.first(assertion_document, "/p:Response/a:Issuer", { "p" => PROTOCOL, "a" => ASSERTION })
-          node ||= xpath_first_from_signed_assertion('/a:Issuer')
+          node = REXML::XPath.first(assertion_document, "/samlp:Response/saml:Issuer")
+          node ||= xpath_first_from_signed_assertion('/saml:Issuer')
           node.nil? ? nil : node.text
         end
       end
@@ -148,8 +152,6 @@ module OneLogin
           end
         end
       end
-
-      private
 
       def validation_error(message)
         raise ValidationError.new(message)
@@ -192,8 +194,7 @@ module OneLogin
       end
 
       def xpath_first_from_signed_assertion(subelt=nil)
-        node = REXML::XPath.first(assertion_document, "/p:Response/a:Assertion[@ID='#{assertion_document.signed_element_id}']#{subelt}", { "p" => PROTOCOL, "a" => ASSERTION })
-        node ||= REXML::XPath.first(assertion_document, "/p:Response[@ID='#{assertion_document.signed_element_id}']/a:Assertion#{subelt}", { "p" => PROTOCOL, "a" => ASSERTION })
+        node = REXML::XPath.first(assertion_document, "/samlp:Response/saml:Assertion")
         node
       end
 
