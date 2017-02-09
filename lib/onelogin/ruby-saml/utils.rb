@@ -105,19 +105,19 @@ module OneLogin
       def self.decrypt_data(encrypted_node, private_key)
         encrypt_data = REXML::XPath.first(
           encrypted_node,
-          "./xenc:EncryptedData",
+          "./xenc:EncryptedData or ./EncryptedData",
           { 'xenc' => XENC }
         )
         symmetric_key = retrieve_symmetric_key(encrypt_data, private_key)
         cipher_value = REXML::XPath.first(
           encrypt_data,
-          "./xenc:CipherData/xenc:CipherValue",
+          "./xenc:CipherData/xenc:CipherValue or ./e:CipherData/e:CipherValue",
           { 'xenc' => XENC }
         )
         node = Base64.decode64(cipher_value.text)
         encrypt_method = REXML::XPath.first(
           encrypt_data,
-          "./xenc:EncryptionMethod",
+          "./EncryptionMethod or ./xenc:EncryptionMethod",
           { 'xenc' => XENC }
         )
         algorithm = encrypt_method.attributes['Algorithm']
@@ -132,6 +132,7 @@ module OneLogin
         encrypted_key = REXML::XPath.first(
           encrypt_data,
           "./ds:KeyInfo/xenc:EncryptedKey or \
+           ./KeyInfo/e:EncryptedKey or \
            //xenc:EncryptedKey[@Id=$id]",
           { "ds" => DSIG, "xenc" => XENC },
           { "id" =>  self.retrieve_symetric_key_reference(encrypt_data) }
@@ -139,13 +140,13 @@ module OneLogin
 
         encrypted_symmetric_key_element = REXML::XPath.first(
           encrypted_key,
-          "./xenc:CipherData/xenc:CipherValue",
+          "./xenc:CipherData/xenc:CipherValue or ./e:CipherData/e:CipherValue",
           { "ds" => DSIG, "xenc" => XENC }
         )
         cipher_text = Base64.decode64(encrypted_symmetric_key_element.text)
         encrypt_method = REXML::XPath.first(
           encrypted_key,
-          "./xenc:EncryptionMethod",
+          "./EncryptionMethod or ./xenc:EncryptionMethod",
           {"ds" => DSIG,  "xenc" => XENC }
         )
         algorithm = encrypt_method.attributes['Algorithm']
