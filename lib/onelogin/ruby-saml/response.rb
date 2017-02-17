@@ -368,6 +368,11 @@ module OneLogin
 
         if collect_errors
           validations.each { |validation| send(validation) }
+          unless @errors.empty?
+            if defined? Rails
+              Rails.logger.warn("SAML ERRORS: #{@errors}")
+            end
+          end
           @errors.empty?
         else
           validations.all? { |validation| send(validation) }
