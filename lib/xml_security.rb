@@ -187,6 +187,7 @@ module XMLSecurity
     include OneLogin::RubySaml::ErrorHandling
 
     attr_accessor :signed_element_id
+    attr_reader :errors
 
     def initialize(response, errors = [])
       super(response)
@@ -223,18 +224,13 @@ module XMLSecurity
 
         # check cert matches registered idp cert
         if fingerprint != idp_cert_fingerprint.gsub(/[^a-zA-Z0-9]/,"").downcase
-          @errors << "Fingerprint mismatch"
           return append_error("Fingerprint mismatch", soft)
         end
       else
         if options[:cert]
           base64_cert = Base64.encode64(options[:cert].to_pem)
         else
-          if soft
-            return false
-          else
-            return append_error("Certificate element missing in response (ds:X509Certificate) and not cert provided at settings", soft)
-          end
+          return append_error("Certificate element missing in response (ds:X509Certificate) and not cert provided at settings", soft)
         end
       end
       validate_signature(base64_cert, soft)

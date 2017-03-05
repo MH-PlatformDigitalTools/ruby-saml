@@ -370,6 +370,8 @@ module OneLogin
           validations.each { |validation| send(validation) }
           unless @errors.empty?
             if defined? Rails
+              # Puts'ing makes it easier to see the errors in tests.
+              puts "SAML ERRORS: #{@errors}"
               Rails.logger.warn("SAML ERRORS: #{@errors}")
             end
           end
@@ -789,6 +791,7 @@ module OneLogin
 
         # If the response contains the signature, and the assertion was encrypted, validate the original SAML Response
         # otherwise, review if the decrypted assertion contains a signature
+        # NOTE: OurHealth CNO Requests follow this path:
         sig_elements = REXML::XPath.match(
           document,
           "/p:Response[@ID=$id]/ds:Signature or /samlp:Response/Signature",
@@ -800,17 +803,18 @@ module OneLogin
         doc = use_original ? document : decrypted_document
 
         # Check signature nodes
+        # NOTE: OurHealth ININ Requests follow this path:
         if sig_elements.nil? || sig_elements.size == 0
           sig_elements = REXML::XPath.match(
             doc,
-            "/p:Response/a:Assertion[@ID=$id]/ds:Signature or /samlp:Response/Signature",
+            "/p:Response/a:Assertion[@ID=$id]/ds:Signature or /samlp:Response/saml:Assertion/ds:Signature",
             {"p" => PROTOCOL, "a" => ASSERTION, "ds"=>DSIG},
             { 'id' => doc.signed_element_id }
           )
         end
 
         if sig_elements.size != 1
-          return append_error(error_msg)
+          return append_error("Signature missing on SAML Response")
         end
 
         opts = {}
@@ -818,7 +822,11 @@ module OneLogin
         opts[:cert] = settings.get_idp_cert
         fingerprint = settings.get_fingerprint
 
-        unless fingerprint && doc.validate_document(fingerprint, @soft, opts)          
+        unless fingerprint && doc.validate_document(fingerprint, @soft, opts)
+          # Include the document's errors when reporting this error:
+          unless doc.errors.empty?
+            error_msg += ": " + doc.errors.join(", ")
+          end
           return append_error(error_msg)
         end
 
