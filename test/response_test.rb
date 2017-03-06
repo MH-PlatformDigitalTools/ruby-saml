@@ -396,7 +396,7 @@ class RubySamlTest < Minitest::Test
           collect_errors = true
           response_invalid_subjectconfirmation_recipient.is_valid?(collect_errors)
           assert_includes response_invalid_subjectconfirmation_recipient.errors, "invalid is not a valid audience for this Response - Valid audiences: http://stuff.com/endpoints/metadata.php"
-          assert_includes response_invalid_subjectconfirmation_recipient.errors, "Invalid Signature on SAML Response"
+          assert_includes response_invalid_subjectconfirmation_recipient.errors, "Invalid Signature on SAML Response: Fingerprint mismatch"
         end
       end
     end
@@ -760,7 +760,7 @@ class RubySamlTest < Minitest::Test
         settings.idp_cert_fingerprint = signature_fingerprint_1
         response.settings = settings
         assert !response.send(:validate_signature)
-        assert_includes response.errors, "Invalid Signature on SAML Response"
+        assert_includes response.errors, "Invalid Signature on SAML Response: Fingerprint mismatch"
       end
 
       it "return false when no X509Certificate and not cert provided at settings" do
@@ -768,7 +768,7 @@ class RubySamlTest < Minitest::Test
         settings.idp_cert = nil
         response_valid_signed_without_x509certificate.settings = settings
         assert !response_valid_signed_without_x509certificate.send(:validate_signature)
-        assert_includes response_valid_signed_without_x509certificate.errors, "Invalid Signature on SAML Response"
+        assert_includes response_valid_signed_without_x509certificate.errors, "Invalid Signature on SAML Response: Certificate element missing in response (ds:X509Certificate) and not cert provided at settings"
       end
 
       it "return false when no X509Certificate and the cert provided at settings mismatches" do
@@ -776,7 +776,7 @@ class RubySamlTest < Minitest::Test
         settings.idp_cert = signature_1
         response_valid_signed_without_x509certificate.settings = settings
         assert !response_valid_signed_without_x509certificate.send(:validate_signature)
-        assert_includes response_valid_signed_without_x509certificate.errors, "Invalid Signature on SAML Response"
+        assert_includes response_valid_signed_without_x509certificate.errors, "Invalid Signature on SAML Response: Key validation error"
       end
 
       it "return true when no X509Certificate and the cert provided at settings matches" do
@@ -795,7 +795,7 @@ class RubySamlTest < Minitest::Test
         settings.idp_cert_fingerprint = "afe71c28ef740bc87425be13a2263d37971da1f9"
         response_wrapped.settings = settings
         assert !response_wrapped.send(:validate_signature)
-        assert_includes response_wrapped.errors, "Invalid Signature on SAML Response"
+        assert_includes response_wrapped.errors, "Signature missing on SAML Response"
        end
     end
 
