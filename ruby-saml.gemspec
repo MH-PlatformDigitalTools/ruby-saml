@@ -42,7 +42,7 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency('minitest', '~> 5.5')
   s.add_development_dependency('mocha',    '~> 0.14')
-  s.add_development_dependency('rake',     '~> 10')
+  s.add_development_dependency('rake',     '~> 13')
   s.add_development_dependency('shoulda',  '~> 2.11')
   s.add_development_dependency('simplecov','~> 0.9.0')
   s.add_development_dependency('systemu',  '~> 2')
